@@ -11,7 +11,8 @@ Gem::Specification.new do |gem|
   gem.files         = Dir['ext/**/*'].grep(/\.(rb|c)$/) +
                       (Dir['lib/**/*'] + Dir['test/**/*']).grep(/\.rb$/)
   gem.test_files    = gem.files.grep(%r{^test/})
+  gem.extensions    = ["ext/murmurhash3/extconf.rb"]
   gem.name          = "murmurhash3"
   gem.require_paths = ["lib", "ext"]
-  gem.version       = Murmurhash3::VERSION
+  gem.version       = MurmurHash3::VERSION
 end
