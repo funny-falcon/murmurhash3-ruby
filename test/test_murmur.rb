@@ -15,8 +15,8 @@ shared_examples_128 = proc do
   end
 
   it 'should make correct hash for 64bit integer' do
-    murmur.int64_hash(0x12345678).must_equal murmur.str_hash("\x00\x00\x00\x00\x12\x34\x56\x78")
-    murmur.int64_hash(0x1234567812345678).must_equal murmur.str_hash("\x12\x34\x56\x78\x12\x34\x56\x78")
+    murmur.int64_hash(0x12345678).must_equal murmur.str_hash("\x78\x56\x34\x12\x00\x00\x00\x00")
+    murmur.int64_hash(0x1234567812345678).must_equal murmur.str_hash("\x78\x56\x34\x12\x78\x56\x34\x12")
   end
 
   it 'should make correct fmix for 64bit integer' do
@@ -38,8 +38,8 @@ shared_examples_32 = proc do
   end
 
   it 'should make correct hash for 64bit integer' do
-    murmur.int64_hash(0x12345678).must_equal murmur.str_hash("\x00\x00\x00\x00\x12\x34\x56\x78")
-    murmur.int64_hash(0x1234567812345678).must_equal murmur.str_hash("\x12\x34\x56\x78\x12\x34\x56\x78")
+    murmur.int64_hash(0x12345678).must_equal murmur.str_hash("\x78\x56\x34\x12\x00\x00\x00\x00")
+    murmur.int64_hash(0x1234567812345678).must_equal murmur.str_hash("\x78\x56\x34\x12\x78\x56\x34\x12")
   end
 
   it 'should make correct fmix for 32bit integer' do
@@ -56,4 +56,21 @@ end
 describe "Pure ruby 128" do
   let(:murmur) { MurmurHash3::PureRuby128 }
   class_exec &shared_examples_128
+end
+
+begin
+  require 'murmurhash3/native_murmur'
+
+  describe "Native 32" do
+    let(:murmur) { MurmurHash3::Native32 }
+    class_exec &shared_examples_32
+  end
+
+  describe "Native 128" do
+    let(:murmur) { MurmurHash3::Native128 }
+    class_exec &shared_examples_128
+  end
+
+rescue LoadError => e
+  puts "Could not load native extension: #{e}"
 end

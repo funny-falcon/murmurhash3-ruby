@@ -50,7 +50,7 @@ module MurmurHash3
     end
 
     def murmur3_32_int64_hash(i, seed=0)
-      str_hash([i].pack("Q>"), seed)
+      str_hash([i].pack("Q<"), seed)
     end
 
     class << self
@@ -78,18 +78,18 @@ module MurmurHash3
       h ^ (h >> 33)
     end
 
-    C1 = 0x87c37b91_114253d5
-    C2 = 0x4cf5ad43_2745937f
+    C1_128 = 0x87c37b91_114253d5
+    C2_128 = 0x4cf5ad43_2745937f
     def murmur3_128__mmix1(k1)
-      k1 = (k1 * C1) & MASK64
+      k1 = (k1 * C1_128) & MASK64
       k1 = murmur3_128_rotl(k1, 31)
-      (k1 * C2) & MASK64
+      (k1 * C2_128) & MASK64
     end
 
     def murmur3_128__mmix2(k2)
-      k2 = (k2 * C2) & MASK64
+      k2 = (k2 * C2_128) & MASK64
       k2 = murmur3_128_rotl(k2, 33)
-      (k2 * C1) & MASK64
+      (k2 * C1_128) & MASK64
     end
 
     def murmur3_128_str_hash(str, seed=0)
@@ -141,7 +141,7 @@ module MurmurHash3
     end
 
     def murmur3_128_int64_hash(i, seed=0)
-      str_hash([i].pack("Q>"), seed)
+      str_hash([i].pack("Q<"), seed)
     end
 
     class << self
