@@ -293,12 +293,16 @@ rb_fmix64(VALUE self, VALUE integer)
 static VALUE
 rb_murmur3_32_str_hash(int argc, VALUE* argv, VALUE self)
 {
-    VALUE rstr, rseed;
+    VALUE rstr;
     uint32_t result;
 
-    rb_scan_args(argc, argv, "11", &rstr, &rseed);
+    if (argc == 0 || argc > 2) {
+	rb_raise(rb_eArgError, "accept 1 or 2 arguments: (string[, seed])");
+    }
+    rstr = argv[0];
+    StringValue(rstr);
 
-    result = MurmurHash3_x86_32(RSTRING_PTR(rstr), RSTRING_LEN(rstr), argc == 1 ? 0 : NUM2UINT(rseed));
+    result = MurmurHash3_x86_32(RSTRING_PTR(rstr), RSTRING_LEN(rstr), argc == 1 ? 0 : NUM2UINT(argv[1]));
 
     return UINT2NUM(result);
 }
@@ -306,14 +310,16 @@ rb_murmur3_32_str_hash(int argc, VALUE* argv, VALUE self)
 static VALUE
 rb_murmur3_32_int32_hash(int argc, VALUE* argv, VALUE self)
 {
-    VALUE rint, rseed;
+    VALUE rint;
     uint32_t _int;
     uint32_t result;
 
-    rb_scan_args(argc, argv, "11", &rint, &rseed);
-    _int = NUM2UINT(rint);
+    if (argc == 0 || argc > 2) {
+	rb_raise(rb_eArgError, "accept 1 or 2 arguments: (int32[, seed])");
+    }
+    _int = NUM2UINT(argv[0]);
 
-    result = MurmurHash3_x86_32(&_int, 4, argc == 1 ? 0 : NUM2UINT(rseed));
+    result = MurmurHash3_x86_32(&_int, 4, argc == 1 ? 0 : NUM2UINT(argv[1]));
 
     return UINT2NUM(result);
 }
@@ -321,18 +327,20 @@ rb_murmur3_32_int32_hash(int argc, VALUE* argv, VALUE self)
 static VALUE
 rb_murmur3_32_int64_hash(int argc, VALUE* argv, VALUE self)
 {
-    VALUE rint, rseed;
+    VALUE rint;
     uint64_t _int;
     uint32_t result;
 
-    rb_scan_args(argc, argv, "11", &rint, &rseed);
+    if (argc == 0 || argc > 2) {
+	rb_raise(rb_eArgError, "accept 1 or 2 arguments: (int64[, seed])");
+    }
 #if SIZEOF_LONG == 8
-    _int = NUM2ULONG(rint);
+    _int = NUM2ULONG(argv[0]);
 #else
-    _int = NUM2ULL(rint);
+    _int = NUM2ULL(argv[0]);
 #endif
 
-    result = MurmurHash3_x86_32(&_int, 8, argc == 1 ? 0 : NUM2UINT(rseed));
+    result = MurmurHash3_x86_32(&_int, 8, argc == 1 ? 0 : NUM2UINT(argv[1]));
 
     return UINT2NUM(result);
 }
@@ -340,7 +348,6 @@ rb_murmur3_32_int64_hash(int argc, VALUE* argv, VALUE self)
 #define PREPARE_128_BIT()         \
     VALUE rstr, rseed, ar_result; \
     uint32_t result[4];           \
-    rb_scan_args(argc, argv, "11", &rstr, &rseed)
 
 #define SWAP_128_BIT() do {    \
         uint32_t tmp;          \
@@ -363,9 +370,16 @@ rb_murmur3_32_int64_hash(int argc, VALUE* argv, VALUE self)
 static VALUE
 rb_murmur3_128_str_hash(int argc, VALUE* argv, VALUE self)
 {
-    PREPARE_128_BIT();
+    VALUE rstr, ar_result;
+    uint32_t result[4];
 
-    MurmurHash3_x64_128(RSTRING_PTR(rstr), RSTRING_LEN(rstr), argc == 1 ? 0 : NUM2UINT(rseed), result);
+    if (argc == 0 || argc > 2) {
+	rb_raise(rb_eArgError, "accept 1 or 2 arguments: (string[, seed])");
+    }
+    rstr = argv[0];
+    StringValue(rstr);
+
+    MurmurHash3_x64_128(RSTRING_PTR(rstr), RSTRING_LEN(rstr), argc == 1 ? 0 : NUM2UINT(argv[1]), result);
 #if WORDS_BIGENDIAN
     SWAP_128_BIT();
 #endif
@@ -375,12 +389,14 @@ rb_murmur3_128_str_hash(int argc, VALUE* argv, VALUE self)
 static VALUE
 rb_murmur3_128_int32_hash(int argc, VALUE* argv, VALUE self)
 {
-    PREPARE_128_BIT();
+    VALUE ar_result;
+    uint32_t result[4], _int;
 
-    {
-        uint32_t _int = NUM2UINT(rstr);
-        MurmurHash3_x64_128(&_int, 4, argc == 1 ? 0 : NUM2UINT(rseed), result);
+    if (argc == 0 || argc > 2) {
+	rb_raise(rb_eArgError, "accept 1 or 2 arguments: (int32[, seed])");
     }
+    _int = NUM2UINT(argv[0]);
+    MurmurHash3_x64_128(&_int, 4, argc == 1 ? 0 : NUM2UINT(argv[1]), result);
 #if WORDS_BIGENDIAN
     SWAP_128_BIT();
 #endif
@@ -390,16 +406,19 @@ rb_murmur3_128_int32_hash(int argc, VALUE* argv, VALUE self)
 static VALUE
 rb_murmur3_128_int64_hash(int argc, VALUE* argv, VALUE self)
 {
-    PREPARE_128_BIT();
+    VALUE ar_result;
+    uint32_t result[4];
+    uint64_t _int;
 
-    {
-#if SIZEOF_LONG == 8
-        uint64_t _int = NUM2ULONG(rstr);
-#else
-        uint64_t _int = NUM2ULL(rstr);
-#endif
-        MurmurHash3_x64_128(&_int, 8, argc == 1 ? 0 : NUM2UINT(rseed), result);
+    if (argc == 0 || argc > 2) {
+	rb_raise(rb_eArgError, "accept 1 or 2 arguments: (int64[, seed])");
     }
+#if SIZEOF_LONG == 8
+    _int = NUM2ULONG(argv[0]);
+#else
+    _int = NUM2ULL(argv[0]);
+#endif
+    MurmurHash3_x64_128(&_int, 8, argc == 1 ? 0 : NUM2UINT(argv[1]), result);
 #if WORDS_BIGENDIAN
     SWAP_128_BIT();
 #endif
