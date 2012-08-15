@@ -11,10 +11,12 @@
 
 typedef unsigned char uint8_t;
 typedef unsigned int uint32_t;
+#ifndef HAVE_STDINT_H
 #if SIZEOF_LONG == 8
 typedef unsigned long uint64_t;
 #else
 typedef unsigned long long uint64_t;
+#endif
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -61,6 +63,11 @@ rotl64 ( uint64_t x, int8_t r )
 /* Block read - if your platform needs to do endian-swapping or can only
  * handle aligned reads, do the conversion here */
 #ifdef WORDS_BIGENDIAN
+#define GCC_VERSION_SINCE(major, minor, patchlevel) \
+   (defined(__GNUC__) && !defined(__INTEL_COMPILER) && \
+    ((__GNUC__ > (major)) ||  \
+     (__GNUC__ == (major) && __GNUC_MINOR__ > (minor)) || \
+     (__GNUC__ == (major) && __GNUC_MINOR__ == (minor) && __GNUC_PATCHLEVEL__ >= (patchlevel))))
 #if GCC_VERSION_SINCE(4,3,0)
 # define swap32(x) __builtin_bswap32(x)
 # define swap64(x) __builtin_bswap64(x)
@@ -137,10 +144,10 @@ mmix32(uint32_t k1)
 }
 
 static uint32_t
-MurmurHash3_x86_32 ( const void * key, int len, uint32_t seed)
+MurmurHash3_x86_32 ( const void * key, long len, uint32_t seed)
 {
   const uint8_t * data = (const uint8_t*)key;
-  const int nblocks = len / 4;
+  const int nblocks = (int)(len / 4);
   int i;
 
   uint32_t h1 = seed;
@@ -198,11 +205,11 @@ mmix128_2(uint64_t k2)
     return k2 * C1_128;
 }
 
-static void MurmurHash3_x64_128 ( const void * key, const int len,
+static void MurmurHash3_x64_128 ( const void * key, const long len,
                            const uint32_t seed, void * out )
 {
   const uint8_t * data = (const uint8_t*)key;
-  const int nblocks = len / 16;
+  const int nblocks = (int)(len / 16);
   int i;
 
   uint64_t h1 = seed;
