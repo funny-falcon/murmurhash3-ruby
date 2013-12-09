@@ -6,7 +6,7 @@ Gem::Specification.new do |gem|
   gem.email         = ["funny.falcon@gmail.com"]
   gem.description   = %q{implementation of murmur3 hashing function}
   gem.summary       = %q{implements mumur3 hashing function}
-  gem.homepage      = "https://github.com/funny-falcon/murmurhash3"
+  gem.homepage      = "https://github.com/funny-falcon/murmurhash3-ruby"
   gem.license       = "MIT"
 
   gem.files         = Dir['ext/**/*'].grep(/\.(rb|c)$/) +
