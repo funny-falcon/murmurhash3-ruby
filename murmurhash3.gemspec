@@ -7,6 +7,7 @@ Gem::Specification.new do |gem|
   gem.description   = %q{implementation of murmur3 hashing function}
   gem.summary       = %q{implements mumur3 hashing function}
   gem.homepage      = "https://github.com/funny-falcon/murmurhash3"
+  gem.license       = "MIT"
 
   gem.files         = Dir['ext/**/*'].grep(/\.(rb|c)$/) +
                       (Dir['lib/**/*'] + Dir['test/**/*']).grep(/\.rb$/)
