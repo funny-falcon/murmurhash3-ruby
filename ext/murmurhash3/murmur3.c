@@ -109,6 +109,26 @@ getblock64(const uint64_t * p, int i)
 #define getblock64(p, i) (p[i])
 #endif
 
+static const char hex[] =
+        "000102030405060708090a0b0c0d0e0f" \
+        "101112131415161718191a1b1c1d1e1f" \
+        "202122232425262728292a2b2c2d2e2f" \
+        "303132333435363738393a3b3c3d3e3f" \
+        "404142434445464748494a4b4c4d4e4f" \
+        "505152535455565758595a5b5c5d5e5f" \
+        "606162636465666768696a6b6c6d6e6f" \
+        "707172737475767778797a7b7c7d7e7f" \
+        "808182838485868788898a8b8c8d8e8f" \
+        "909192939495969798999a9b9c9d9e9f" \
+        "a0a1a2a3a4a5a6a7a8a9aaabacadaeaf" \
+        "b0b1b2b3b4b5b6b7b8b9babbbcbdbebf" \
+        "c0c1c2c3c4c5c6c7c8c9cacbcccdcecf" \
+        "d0d1d2d3d4d5d6d7d8d9dadbdcdddedf" \
+        "e0e1e2e3e4e5e6e7e8e9eaebecedeeef" \
+        "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff";
+static const char base64[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
 /* Finalization mix - force all bits of a hash block to avalanche */
 
 static inline FORCE_INLINE uint32_t
@@ -161,7 +181,7 @@ MurmurHash3_x86_32 ( const void * key, long len, uint32_t seed)
   for(i = -nblocks; i; i++)
   {
     h1 ^= mmix32(getblock32(blocks, i));
-    h1 = ROTL32(h1,13); 
+    h1 = ROTL32(h1,13);
     h1 = h1*5+0xe6546b64;
   }
 
@@ -184,7 +204,7 @@ MurmurHash3_x86_32 ( const void * key, long len, uint32_t seed)
   h1 = fmix32(h1);
 
   return h1;
-} 
+}
 
 #define C1_128 BIG_CONSTANT(0x87c37b91114253d5)
 #define C2_128 BIG_CONSTANT(0x4cf5ad432745937f)
@@ -297,11 +317,10 @@ rb_fmix64(VALUE self, VALUE integer)
 #endif
 }
 
-static VALUE
-rb_murmur3_32_str_hash(int argc, VALUE* argv, VALUE self)
+static uint32_t
+rb_murmur3_32_hash(int argc, VALUE* argv, VALUE self)
 {
     VALUE rstr;
-    uint32_t result;
 
     if (argc == 0 || argc > 2) {
 	rb_raise(rb_eArgError, "accept 1 or 2 arguments: (string[, seed])");
@@ -309,15 +328,90 @@ rb_murmur3_32_str_hash(int argc, VALUE* argv, VALUE self)
     rstr = argv[0];
     StringValue(rstr);
 
-    result = MurmurHash3_x86_32(RSTRING_PTR(rstr), RSTRING_LEN(rstr), argc == 1 ? 0 : NUM2UINT(argv[1]));
+    return MurmurHash3_x86_32(RSTRING_PTR(rstr), RSTRING_LEN(rstr), argc == 1 ? 0 : NUM2UINT(argv[1]));
+}
 
-    return UINT2NUM(result);
+static VALUE
+rb_murmur3_32_str_hash(int argc, VALUE* argv, VALUE self)
+{
+    return UINT2NUM(rb_murmur3_32_hash(argc, argv, self));
+}
+
+#define SWAP_32_INT(t) do { \
+        (t) = ((t) >> 24) | (((t) >> 8) & 0xff00) | \
+              (((t) & 0xff00) << 8) | ((t) << 24); \
+} while (0)
+static VALUE
+rb_murmur3_32_str_digest(int argc, VALUE* argv, VALUE self)
+{
+    union {
+        uint32_t result;
+        char     res[4];
+    } r;
+
+    r.result = rb_murmur3_32_hash(argc, argv, self);
+#if WORDS_BIGENDIAN
+    SWAP_32_INT(r.result);
+#endif
+
+    return rb_str_new(r.res, 4);
+}
+
+static VALUE
+rb_murmur3_32_str_hexdigest(int argc, VALUE* argv, VALUE self)
+{
+    union {
+        uint32_t result;
+        unsigned char res[4];
+    } r;
+    char out[8];
+    int i;
+
+    r.result = rb_murmur3_32_hash(argc, argv, self);
+#if WORDS_BIGENDIAN
+    SWAP_32_INT(r.result);
+#endif
+    for(i = 0; i<4; i++) {
+        out[i*2] = hex[r.res[i]*2];
+        out[i*2+1] = hex[r.res[i]*2+1];
+    }
+
+    return rb_str_new(out, 8);
+}
+
+static VALUE
+rb_murmur3_32_str_base64digest(int argc, VALUE *argv, VALUE self)
+{
+    union {
+        uint32_t result;
+        unsigned char res[6];
+    } r;
+    char out[8];
+    int i;
+    r.result = rb_murmur3_32_hash(argc, argv, self);
+#if WORDS_BIGENDIAN
+    SWAP_32_INT(r.result);
+#endif
+    r.res[4] = 0;
+    r.res[5] = 0;
+    for(i = 0; i<2; i++) {
+        uint32_t b64 =
+                ((uint32_t)r.res[i*3+0] << 16) |
+                ((uint32_t)r.res[i*3+1] << 8) |
+                 (uint32_t)r.res[i*3+2];
+        out[i*4+0] = base64[(b64 >> 18) & 0x3f];
+        out[i*4+1] = base64[(b64 >> 12) & 0x3f];
+        out[i*4+2] = base64[(b64 >>  6) & 0x3f];
+        out[i*4+3] = base64[(b64 >>  0) & 0x3f];
+    }
+    out[6] = '=';
+    out[7] = '=';
+    return rb_str_new(out, sizeof(out));
 }
 
 static VALUE
 rb_murmur3_32_int32_hash(int argc, VALUE* argv, VALUE self)
 {
-    VALUE rint;
     uint32_t _int;
     uint32_t result;
 
@@ -334,7 +428,6 @@ rb_murmur3_32_int32_hash(int argc, VALUE* argv, VALUE self)
 static VALUE
 rb_murmur3_32_int64_hash(int argc, VALUE* argv, VALUE self)
 {
-    VALUE rint;
     uint64_t _int;
     uint32_t result;
 
@@ -366,6 +459,20 @@ rb_murmur3_32_int64_hash(int argc, VALUE* argv, VALUE self)
         result[3] = tmp;       \
 } while (0)
 
+#define SWAP_128_BIT_BYTE() do {    \
+        uint32_t tmp;          \
+        tmp = r.result[0];       \
+        SWAP_32_INT(tmp); \
+        SWAP_32_INT(r.result[1]); \
+        r.result[0] = r.result[1]; \
+        r.result[1] = tmp;       \
+        tmp = r.result[2];       \
+        SWAP_32_INT(tmp); \
+        SWAP_32_INT(r.result[3]); \
+        r.result[2] = r.result[3]; \
+        r.result[3] = tmp;       \
+} while (0)
+
 #define RETURN_128_BIT()       \
     ar_result = rb_ary_new2(4);      \
     rb_ary_push(ar_result, UINT2NUM(result[0])); \
@@ -374,11 +481,10 @@ rb_murmur3_32_int64_hash(int argc, VALUE* argv, VALUE self)
     rb_ary_push(ar_result, UINT2NUM(result[3])); \
     return ar_result
 
-static VALUE
-rb_murmur3_128_str_hash(int argc, VALUE* argv, VALUE self)
+static void
+rb_murmur3_128_hash(int argc, VALUE* argv, VALUE self, uint32_t result[4])
 {
-    VALUE rstr, ar_result;
-    uint32_t result[4];
+    VALUE rstr;
 
     if (argc == 0 || argc > 2) {
 	rb_raise(rb_eArgError, "accept 1 or 2 arguments: (string[, seed])");
@@ -387,10 +493,82 @@ rb_murmur3_128_str_hash(int argc, VALUE* argv, VALUE self)
     StringValue(rstr);
 
     MurmurHash3_x64_128(RSTRING_PTR(rstr), RSTRING_LEN(rstr), argc == 1 ? 0 : NUM2UINT(argv[1]), result);
+}
+
+static VALUE
+rb_murmur3_128_str_hash(int argc, VALUE* argv, VALUE self)
+{
+    VALUE ar_result;
+    uint32_t result[4];
+    rb_murmur3_128_hash(argc, argv, self, result);
 #if WORDS_BIGENDIAN
     SWAP_128_BIT();
 #endif
     RETURN_128_BIT();
+}
+
+static VALUE
+rb_murmur3_128_str_digest(int argc, VALUE *argv, VALUE self)
+{
+    union {
+        uint32_t result[4];
+        char res[16];
+    } r;
+    rb_murmur3_128_hash(argc, argv, self, r.result);
+#if WORDS_BIGENDIAN
+    SWAP_128_BIT_BYTE();
+#endif
+    return rb_str_new(r.res, sizeof(r.res));
+}
+
+static VALUE
+rb_murmur3_128_str_hexdigest(int argc, VALUE *argv, VALUE self)
+{
+    union {
+        uint32_t result[4];
+        unsigned char res[16];
+    } r;
+    char out[32];
+    int i;
+    rb_murmur3_128_hash(argc, argv, self, r.result);
+#if WORDS_BIGENDIAN
+    SWAP_128_BIT_BYTE();
+#endif
+    for(i = 0; i<16; i++) {
+        out[i*2] = hex[r.res[i]*2];
+        out[i*2+1] = hex[r.res[i]*2+1];
+    }
+    return rb_str_new(out, sizeof(out));
+}
+
+static VALUE
+rb_murmur3_128_str_base64digest(int argc, VALUE *argv, VALUE self)
+{
+    union {
+        uint32_t result[4];
+        unsigned char res[18];
+    } r;
+    char out[24];
+    int i;
+    rb_murmur3_128_hash(argc, argv, self, r.result);
+#if WORDS_BIGENDIAN
+    SWAP_128_BIT_BYTE();
+#endif
+    r.res[16] = 0;
+    r.res[17] = 0;
+    for(i = 0; i<6; i++) {
+        uint32_t b64 =
+                ((uint32_t)r.res[i*3+0] << 16) |
+                ((uint32_t)r.res[i*3+1] << 8) |
+                 (uint32_t)r.res[i*3+2];
+        out[i*4+0] = base64[(b64 >> 18) & 0x3f];
+        out[i*4+1] = base64[(b64 >> 12) & 0x3f];
+        out[i*4+2] = base64[(b64 >>  6) & 0x3f];
+        out[i*4+3] = base64[(b64 >>  0) & 0x3f];
+    }
+    out[22] = '=';
+    out[23] = '=';
+    return rb_str_new(out, sizeof(out));
 }
 
 static VALUE
@@ -441,6 +619,9 @@ Init_native_murmur() {
 
     rb_define_method(mod_murmur32, "murmur3_32_fmix", rb_fmix32, 1);
     rb_define_method(mod_murmur32, "murmur3_32_str_hash", rb_murmur3_32_str_hash, -1);
+    rb_define_method(mod_murmur32, "murmur3_32_str_digest", rb_murmur3_32_str_digest, -1);
+    rb_define_method(mod_murmur32, "murmur3_32_str_hexdigest", rb_murmur3_32_str_hexdigest, -1);
+    rb_define_method(mod_murmur32, "murmur3_32_str_base64digest", rb_murmur3_32_str_base64digest, -1);
     rb_define_method(mod_murmur32, "murmur3_32_int32_hash", rb_murmur3_32_int32_hash, -1);
     rb_define_method(mod_murmur32, "murmur3_32_int64_hash", rb_murmur3_32_int64_hash, -1);
 
@@ -448,12 +629,18 @@ Init_native_murmur() {
     singleton = rb_singleton_class(mod_murmur32);
     rb_define_alias(singleton, "fmix", "murmur3_32_fmix");
     rb_define_alias(singleton, "str_hash", "murmur3_32_str_hash");
+    rb_define_alias(singleton, "str_digest", "murmur3_32_str_digest");
+    rb_define_alias(singleton, "str_hexdigest", "murmur3_32_str_hexdigest");
+    rb_define_alias(singleton, "str_base64digest", "murmur3_32_str_base64digest");
     rb_define_alias(singleton, "int32_hash", "murmur3_32_int32_hash");
     rb_define_alias(singleton, "int64_hash", "murmur3_32_int64_hash");
 
 
     rb_define_method(mod_murmur128, "murmur3_128_fmix", rb_fmix64, 1);
     rb_define_method(mod_murmur128, "murmur3_128_str_hash", rb_murmur3_128_str_hash, -1);
+    rb_define_method(mod_murmur128, "murmur3_128_str_digest", rb_murmur3_128_str_digest, -1);
+    rb_define_method(mod_murmur128, "murmur3_128_str_hexdigest", rb_murmur3_128_str_hexdigest, -1);
+    rb_define_method(mod_murmur128, "murmur3_128_str_base64digest", rb_murmur3_128_str_base64digest, -1);
     rb_define_method(mod_murmur128, "murmur3_128_int32_hash", rb_murmur3_128_int32_hash, -1);
     rb_define_method(mod_murmur128, "murmur3_128_int64_hash", rb_murmur3_128_int64_hash, -1);
 
@@ -461,6 +648,9 @@ Init_native_murmur() {
     singleton = rb_singleton_class(mod_murmur128);
     rb_define_alias(singleton, "fmix", "murmur3_128_fmix");
     rb_define_alias(singleton, "str_hash", "murmur3_128_str_hash");
+    rb_define_alias(singleton, "str_digest", "murmur3_128_str_digest");
+    rb_define_alias(singleton, "str_hexdigest", "murmur3_128_str_hexdigest");
+    rb_define_alias(singleton, "str_base64digest", "murmur3_128_str_base64digest");
     rb_define_alias(singleton, "int32_hash", "murmur3_128_int32_hash");
     rb_define_alias(singleton, "int64_hash", "murmur3_128_int64_hash");
 
