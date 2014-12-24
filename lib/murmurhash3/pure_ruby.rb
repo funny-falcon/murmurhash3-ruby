@@ -1,4 +1,4 @@
-require 'digest'
+require 'murmurhash3/aliaser'
 module MurmurHash3
   module PureRuby32
     MASK32 = 0xffffffff
@@ -64,17 +64,7 @@ module MurmurHash3
     def murmur3_32_str_base64digest(str, seed=0)
       [[str_hash(str, seed)].pack("V")].pack("m").chomp!
     end
-
-    class << self
-      include MurmurHash3::PureRuby32
-      alias fmix murmur3_32_fmix
-      alias str_hash murmur3_32_str_hash
-      alias str_digest murmur3_32_str_digest
-      alias str_hexdigest murmur3_32_str_hexdigest
-      alias str_base64digest murmur3_32_str_base64digest
-      alias int32_hash murmur3_32_int32_hash
-      alias int64_hash murmur3_32_int64_hash
-    end
+    include MurmurHash3::Alias32
   end
 
   module PureRuby128
@@ -170,16 +160,6 @@ module MurmurHash3
     def murmur3_128_str_base64digest(str, seed=0)
       [str_hash(str, seed).pack("V4")].pack('m').chomp!
     end
-
-    class << self
-      include MurmurHash3::PureRuby128
-      alias fmix murmur3_128_fmix
-      alias str_hash murmur3_128_str_hash
-      alias str_digest murmur3_128_str_digest
-      alias str_hexdigest murmur3_128_str_hexdigest
-      alias str_base64digest murmur3_128_str_base64digest
-      alias int32_hash murmur3_128_int32_hash
-      alias int64_hash murmur3_128_int64_hash
-    end
+    include MurmurHash3::Alias128
   end
 end

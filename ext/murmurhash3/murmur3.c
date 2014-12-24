@@ -611,8 +611,7 @@ rb_murmur3_128_int64_hash(int argc, VALUE* argv, VALUE self)
 }
 
 void
-Init_native_murmur() {
-    VALUE singleton;
+Init_native() {
     VALUE mod_murmur = rb_define_module("MurmurHash3");
     VALUE mod_murmur32 = rb_define_module_under(mod_murmur, "Native32");
     VALUE mod_murmur128 = rb_define_module_under(mod_murmur, "Native128");
@@ -625,17 +624,6 @@ Init_native_murmur() {
     rb_define_method(mod_murmur32, "murmur3_32_int32_hash", rb_murmur3_32_int32_hash, -1);
     rb_define_method(mod_murmur32, "murmur3_32_int64_hash", rb_murmur3_32_int64_hash, -1);
 
-    rb_extend_object(mod_murmur32, mod_murmur32);
-    singleton = rb_singleton_class(mod_murmur32);
-    rb_define_alias(singleton, "fmix", "murmur3_32_fmix");
-    rb_define_alias(singleton, "str_hash", "murmur3_32_str_hash");
-    rb_define_alias(singleton, "str_digest", "murmur3_32_str_digest");
-    rb_define_alias(singleton, "str_hexdigest", "murmur3_32_str_hexdigest");
-    rb_define_alias(singleton, "str_base64digest", "murmur3_32_str_base64digest");
-    rb_define_alias(singleton, "int32_hash", "murmur3_32_int32_hash");
-    rb_define_alias(singleton, "int64_hash", "murmur3_32_int64_hash");
-
-
     rb_define_method(mod_murmur128, "murmur3_128_fmix", rb_fmix64, 1);
     rb_define_method(mod_murmur128, "murmur3_128_str_hash", rb_murmur3_128_str_hash, -1);
     rb_define_method(mod_murmur128, "murmur3_128_str_digest", rb_murmur3_128_str_digest, -1);
@@ -643,15 +631,4 @@ Init_native_murmur() {
     rb_define_method(mod_murmur128, "murmur3_128_str_base64digest", rb_murmur3_128_str_base64digest, -1);
     rb_define_method(mod_murmur128, "murmur3_128_int32_hash", rb_murmur3_128_int32_hash, -1);
     rb_define_method(mod_murmur128, "murmur3_128_int64_hash", rb_murmur3_128_int64_hash, -1);
-
-    rb_extend_object(mod_murmur128, mod_murmur128);
-    singleton = rb_singleton_class(mod_murmur128);
-    rb_define_alias(singleton, "fmix", "murmur3_128_fmix");
-    rb_define_alias(singleton, "str_hash", "murmur3_128_str_hash");
-    rb_define_alias(singleton, "str_digest", "murmur3_128_str_digest");
-    rb_define_alias(singleton, "str_hexdigest", "murmur3_128_str_hexdigest");
-    rb_define_alias(singleton, "str_base64digest", "murmur3_128_str_base64digest");
-    rb_define_alias(singleton, "int32_hash", "murmur3_128_int32_hash");
-    rb_define_alias(singleton, "int64_hash", "murmur3_128_int64_hash");
-
 }
