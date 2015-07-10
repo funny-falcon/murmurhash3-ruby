@@ -35,7 +35,7 @@ Or install it yourself as:
     MurmurHash3::V32.int64_hash(some_64bit_integer, seed)
 
     class SomeClass
-      include MurmurHash32::V32
+      include MurmurHash3::V32
       def func
         murmur3_32_fmix(some_32bit_integer)
         murmur3_32_str_hash(some_string)
@@ -56,7 +56,7 @@ Or install it yourself as:
     MurmurHash3::V128.int64_hash(some_64bit_integer, seed) # => [int32_0, int32_1, int32_2, int32_3]
 
     class SomeClass
-      include MurmurHash32::V128
+      include MurmurHash3::V128
       def func
         murmur3_128_fmix(some_64bit_integer)             # => int64
         murmur3_128_str_hash(some_string)                # => [int32_0, int32_1, int32_2, int32_3]
