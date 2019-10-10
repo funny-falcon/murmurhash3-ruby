@@ -20,7 +20,7 @@ spec = Gem::Specification.new do |gem|
   gem.homepage      = "https://github.com/funny-falcon/murmurhash3-ruby"
   gem.license       = "MIT"
 
-  files             = FileList['lib/**/*.rb'] + FileList['test/**/*.rb']
+  files             = FileList['lib/**/*.rb', 'test/**/*.rb', 'LICENSE']
   if RUBY_ENGINE == 'jruby'
     gem.files       = files + FileList['ext/**/*.jar']
   else
